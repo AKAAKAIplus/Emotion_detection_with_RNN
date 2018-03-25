@@ -129,6 +129,8 @@ with original_graph.as_default():
 		loss_o = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=target_o, logits=prediction_o))
 		optimizer_o = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss_o)
 
+		max_index = tf.argmax(prediction_o,1)
+
 		correct_prediction = tf.equal(tf.argmax(prediction_o,1), tf.argmax(target_o,1))
 		accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
@@ -136,6 +138,7 @@ with original_graph.as_default():
 		saver_o = tf.train.Saver(tf.global_variables()) 	
 
 tf.reset_default_graph()
+
 
 # ******************************************************************************************************************************
 # 
@@ -158,8 +161,9 @@ else:
 # ****************************
 # Loading DataSet and Training
 # ****************************
-print("\n******************************************************")
+print("\n\n******************************************************")
 print('Loading Data and Vector to Train')
+
 
 load_file = "../data_pre_processing_politics"
 file_list = random.sample(os.listdir(load_file),len(os.listdir(load_file)))
@@ -173,12 +177,18 @@ for index , file in enumerate(file_list):
 		all_raw_training_data.extend(random.sample(df.values, len(df.values)))
 
 		c += 1
-	elif str(file) != '.DS_Store':
+
+
+load_file = "../data_pre_processing_politics_emotion"
+file_list = random.sample(os.listdir(load_file),len(os.listdir(load_file)))
+c = 0
+for index , file in enumerate(file_list):
+	if str(file) != '.DS_Store' and str(file) == str(sys.argv[2])+'.csv':
 		df = pd.read_csv(open( load_file+"/"+str(file),'rU' ) )
 		all_raw_testing_data.extend(random.sample(df.values, len(df.values)))
+
 print(len(all_raw_training_data))
 print(len(all_raw_testing_data))
-
 # ******************************************************************************************************************************
 # 
 # Training
@@ -193,7 +203,7 @@ break_time = 0
 limit_break_time = 40
 
 epoch = 9
-batch_size = 12000
+batch_size = 15000
 
 # training
 try:
@@ -228,7 +238,7 @@ try:
 
 				if (count % batch_size == 0):
 					try:
-						for _ in range(9):
+						for _ in range(11):
 							sess_original.run(optimizer_o,{data_o: train_data, target_o: train_label})
 						acc = sess_original.run(accuracy, {data_o: train_data, target_o: train_label})
 						loss = sess_original.run(loss_o, {data_o: train_data, target_o: train_label})
@@ -262,6 +272,13 @@ count = 0
 train_data = []
 train_label = []
 
+max_0 = 0
+max_1 = 0
+max_2 = 0
+max_3 = 0
+max_4 = 0
+max_all = 0
+
 test_acc = []
 # testing
 print('-----------------------testing---------------------------')
@@ -292,17 +309,39 @@ for i in random.sample(all_raw_testing_data,len(all_raw_testing_data)):
 		if count % batch_size == 0:
 			try:
 				acc = sess_original.run(accuracy, {data_o: train_data, target_o: train_label})
+				max_index_ = sess_original.run(max_index, {data_o: train_data, target_o: train_label})
 				print ("\nIter " + str(count) + ", Testing Accuracy= " + "{:.5f}".format(acc))
+
 				train_data = []
 				train_label = []
 				test_acc.append(acc)
+
+				
+				for m_i in max_index_:
+					if m_i.item() == 0:
+						max_0 += 1
+					elif m_i.item() == 1:
+						max_1 += 1
+					elif m_i.item() == 2:
+						max_2 += 1
+					elif m_i.item() == 3:
+						max_3 += 1
+					elif m_i.item() == 4:
+						max_4 += 1
+					max_all += 1
+
 			except Exception as e:
 				print(e)
 
 
 print('Accuracy:')
 print(sum(test_acc)/(len(test_acc)))
+print('------')
+print(float(max_0)/float(max_all))
+print(float(max_1)/float(max_all))
+print(float(max_2)/float(max_all))
+print(float(max_3)/float(max_all))
+print(float(max_4)/float(max_all))
+
 
 sess_original.close()
-
-
